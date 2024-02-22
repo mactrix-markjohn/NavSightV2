@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.meta.xr.sdk.voice": "file:/Users/mac/Documents/ExtendedReality/Project Resources/com.meta.xr.sdk.voice-62.0.0.tgz",
     "com.nianticlabs.lightship": "https://github.com/niantic-lightship/ardk-upm.git",
     "com.nianticlabs.lightship.sharedar": "https://github.com/niantic-lightship/sharedar-upm.git",
     "com.unity.ai.navigation": "1.1.5",

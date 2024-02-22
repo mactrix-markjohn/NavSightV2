@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.meta.xr.sdk.voice": {
+      "version": "file:/Users/mac/Documents/ExtendedReality/Project Resources/com.meta.xr.sdk.voice-62.0.0.tgz",
+      "depth": 0,
+      "source": "local-tarball",
+      "dependencies": {}
+    },
     "com.nianticlabs.lightship": {
       "version": "https://github.com/niantic-lightship/ardk-upm.git",
       "depth": 0,

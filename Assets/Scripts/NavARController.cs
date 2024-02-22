@@ -51,6 +51,9 @@ public class NavARController : MonoBehaviour
     // -----------------------------------------------------
 
 
+    // ----- Text to Speech Engine ------------------------
+
+    public TextToSspeechController textToSspeechController;
 
 
     // Start is called before the first frame update
@@ -60,13 +63,25 @@ public class NavARController : MonoBehaviour
         _objectDetectionManager.MetadataInitialized += OnMetadataInitialized;
     }
 
-    
+    float counterSec = 1;
+    bool endOfTime = false;
 
     // Update is called once per frame
     void Update()
     {
         SemanticSegmentationUpdate();
         RaycastAndDistance();
+
+        counterSec -= Time.deltaTime;
+
+        if (counterSec <= 0)
+        {
+            // time has ended
+
+            textToSspeechController.SpeakClick("This shit is working");
+            counterSec = 1;
+        }
+
     }
 
     // Meshing functions
