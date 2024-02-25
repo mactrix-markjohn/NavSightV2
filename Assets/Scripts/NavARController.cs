@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR.ARFoundation;
 
+
 public class NavARController : MonoBehaviour
 {
     // ----- Meshing Variables -------------
@@ -15,11 +16,12 @@ public class NavARController : MonoBehaviour
     public AudioSource audioSource;
     public AudioClip audioClip;
 
+   
 
     //Debug text
 
     public TextMeshProUGUI hitDisText;
-    public TextMeshProUGUI cameraDisText;
+    public TextMeshProUGUI isGroundText;
     public Image centerOfScreenImage;
 
     // --------------------------------------
@@ -61,10 +63,13 @@ public class NavARController : MonoBehaviour
     {
         _objectDetectionManager.enabled = true;
         _objectDetectionManager.MetadataInitialized += OnMetadataInitialized;
+
+        // instruct the users
+        Speak("Point the phone camera to your front as you move ");
     }
 
-    float counterSec = 1;
-    bool endOfTime = false;
+    //float counterSec = 1;
+    //bool endOfTime = false;
 
     // Update is called once per frame
     void Update()
@@ -72,15 +77,15 @@ public class NavARController : MonoBehaviour
         SemanticSegmentationUpdate();
         RaycastAndDistance();
 
-        counterSec -= Time.deltaTime;
+        //counterSec -= Time.deltaTime;
 
-        if (counterSec <= 0)
-        {
-            // time has ended
+        //if (counterSec <= 0)
+        //{
+        //    // time has ended
 
-            textToSspeechController.SpeakClick("This shit is working");
-            counterSec = 1;
-        }
+        //    textToSspeechController.SpeakClick("This shit is working");
+        //    counterSec = 1;
+        //}
 
     }
 
@@ -133,7 +138,26 @@ public class NavARController : MonoBehaviour
                     StartHapticVib();
                     audioSource.PlayOneShot(audioClip);
 
+                    // Tell the user want they see
 
+                    string[] vowels = { "a", "e", "i", "o", "u" };
+
+                    string aORan = "a";
+
+                    if (aORan.Contains(objectDetectedName.ToLower()[0]))
+                    {
+                        aORan = "a";
+                    }
+                    else
+                    {
+                        aORan = "an";
+                    }
+
+                    string spokenwords = $"You are looking at {aORan} {objectDetectedName}";
+
+                    Speak(spokenwords);
+
+                    //Speak(semanticName);
 
                 }
 
@@ -169,6 +193,16 @@ public class NavARController : MonoBehaviour
         // check if the center of the screen is pointing to the ground
         isGroundChannel = semanticMan.DoesChannelExistAt(Screen.width / 2, Screen.height / 2, channel);
 
+        if (isGroundChannel)
+        {
+            isGroundText.text = "True";
+        }
+        else
+        {
+            isGroundText.text = "False";
+        }
+
+
         // Get the name of the sematic at the center of the screen
         var list = semanticMan.GetChannelNamesAt(Screen.width / 2, Screen.height / 2);
 
@@ -178,12 +212,20 @@ public class NavARController : MonoBehaviour
         {
             semanticName = list[0];
 
+            // Text to Speech
+            //Speak(semanticName);
+
         }
         else
         {
             semanticName = "";
         }
 
+    }
+
+    public void Speak(string input)
+    {
+        textToSspeechController.SpeakClick(input);
     }
 
     // Object detection
@@ -213,7 +255,7 @@ public class NavARController : MonoBehaviour
         for (int i = 0; i < result.Count; i++)
         {
             var detection = result[i];
-            var categorizations = detection.GetConfidentCategorizations();
+            var categorizations = detection.GetConfidentCategorizations(0.45f);
             if (categorizations.Count <= 0)
             {
                 break;
@@ -225,6 +267,9 @@ public class NavARController : MonoBehaviour
             //Get the category
             var category = categorizations[0];
             objectDetectedName = category.CategoryName;
+
+            //Text to Speech 
+            //Speak(objectDetectedName);
 
 
             //Iterate through found categoires and form our string to output

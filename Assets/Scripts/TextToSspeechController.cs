@@ -56,8 +56,8 @@ public class TextToSspeechController : MonoBehaviour
     {
         // Speak phrase
         string phrase = FormatText(input);
-        bool queued = true; //_queueButton != null && _queueButton.isOn;
-        bool async = true; // _asyncToggle != null && _asyncToggle.isOn;
+        bool queued = false; //_queueButton != null && _queueButton.isOn;
+        bool async = false; // _asyncToggle != null && _asyncToggle.isOn;
 
         // Speak async
         if (async)
