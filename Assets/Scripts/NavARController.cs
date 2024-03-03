@@ -1,13 +1,28 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using MoreMountains.NiceVibrations;
 using Niantic.Lightship.AR.ObjectDetection;
 using Niantic.Lightship.AR.Semantics;
+using NN;
 using TMPro;
+using Unity.Barracuda;
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR.ARFoundation;
-
+using UnityEngine.XR.ARSubsystems;
+using Assets.Scripts;
+using Assets.Scripts.TextureProviders;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
+using UnityEditor;
+using UnityEngine.Profiling;
+using System.Linq;
+using Meta.WitAi.TTS.Utilities;
+using Meta.WitAi.TTS.Data;
 
 public class NavARController : MonoBehaviour
 {
@@ -58,6 +73,44 @@ public class NavARController : MonoBehaviour
     public TextToSspeechController textToSspeechController;
 
 
+
+    // condition to stop alert
+    bool isSpeaking = false;
+
+
+    //-------------- AR Camera Manager -------------------
+
+    public ARCameraManager cameraManager;
+    Texture2D m_Texture;
+
+
+
+    // YOLO v8 instances
+
+    [Tooltip("File of YOLO model.")]
+    [SerializeField]
+    protected NNModel ModelFile;
+
+    [Range(0.0f, 1f)]
+    [Tooltip("The minimum value of box confidence below which boxes won't be drawn.")]
+    [SerializeField]
+    protected float MinBoxConfidence = 0.3f;
+
+    protected NNHandler nn;
+
+    YOLOv8 yolo;
+
+
+    [Tooltip("Text file with classes names separated by coma ','")]
+    public TextAsset ClassesTextFile;
+    XRCpuImage.Transformation m_Transformation = XRCpuImage.Transformation.MirrorY;
+
+
+    string[] classesNames;
+
+    public TextMeshProUGUI objectDetectedText;
+
+
     // Start is called before the first frame update
     void Start()
     {
@@ -65,7 +118,7 @@ public class NavARController : MonoBehaviour
         _objectDetectionManager.MetadataInitialized += OnMetadataInitialized;
 
         // instruct the users
-        Speak("Point the phone camera to your front as you move ");
+        //Speak("Point the phone camera to your front as you move ");
     }
 
     //float counterSec = 1;
@@ -76,6 +129,12 @@ public class NavARController : MonoBehaviour
     {
         SemanticSegmentationUpdate();
         RaycastAndDistance();
+
+
+
+        //YOLOUpdate();
+
+
 
         //counterSec -= Time.deltaTime;
 
@@ -136,21 +195,28 @@ public class NavARController : MonoBehaviour
                     // Start vibration and play sound effect
 
                     StartHapticVib();
+
+
                     audioSource.PlayOneShot(audioClip);
+                    //if (!isSpeaking)
+                    //{
+                        
+                    //}
+                    
 
                     // Tell the user want they see
 
-                    string[] vowels = { "a", "e", "i", "o", "u" };
+                    char[] vowels = { 'a', 'e', 'i', 'o', 'u' };
 
                     string aORan = "a";
 
-                    if (aORan.Contains(objectDetectedName.ToLower()[0]))
+                    if (vowels.Contains<char>(objectDetectedName.ToLower()[0]))
                     {
-                        aORan = "a";
+                        aORan = "an";
                     }
                     else
                     {
-                        aORan = "an";
+                        aORan = "a";
                     }
 
                     string spokenwords = $"You are looking at {aORan} {objectDetectedName}";
@@ -225,7 +291,28 @@ public class NavARController : MonoBehaviour
 
     public void Speak(string input)
     {
+        audioSource.Pause();
+        audioSource.Stop();
+        
+        isSpeaking = true;
         textToSspeechController.SpeakClick(input);
+        StartCoroutine(IsStopSpeaking());
+    }
+
+    IEnumerator IsStopSpeaking()
+    {
+        yield return new WaitForSeconds(5f);
+        //isSpeaking = false;
+    }
+
+    public void OnStopSpeaking(TTSSpeaker s, TTSClipData d)
+    {
+        isSpeaking = false;
+    }
+
+    public void OnStopSpeakingTextPlayback(string s)
+    {
+        isSpeaking = false;
     }
 
     // Object detection
@@ -255,7 +342,7 @@ public class NavARController : MonoBehaviour
         for (int i = 0; i < result.Count; i++)
         {
             var detection = result[i];
-            var categorizations = detection.GetConfidentCategorizations(0.45f);
+            var categorizations = detection.GetConfidentCategorizations(0.5f);
             if (categorizations.Count <= 0)
             {
                 break;
@@ -290,6 +377,114 @@ public class NavARController : MonoBehaviour
         _objectDetectionManager.MetadataInitialized -= OnMetadataInitialized;
         _objectDetectionManager.ObjectDetectionsUpdated -= ObjectDetectionsUpdated;
     }
+
+
+
+
+    // -------- Enable and Disable ----------
+
+    private void OnEnable()
+    {
+        //cameraManager.frameReceived += OnCameraFrameReceived;
+
+        //nn = new NNHandler(ModelFile);
+        //yolo = new YOLOv8Segmentation(nn);
+
+       
+
+        //classesNames = ClassesTextFile.text.Split('\n');
+    }
+
+    
+
+    private void OnDisable()
+    {
+        //cameraManager.frameReceived -= OnCameraFrameReceived;
+        //nn.Dispose();
+    }
+
+    unsafe void OnCameraFrameReceived(ARCameraFrameEventArgs obj)
+    {
+        if (!cameraManager.TryAcquireLatestCpuImage(out XRCpuImage image))
+            return;
+
+        // Choose an RGBA format.
+        // See XRCpuImage.FormatSupported for a complete list of supported formats.
+        const TextureFormat format = TextureFormat.RGBA32;
+
+        if (m_Texture == null || m_Texture.width != image.width || m_Texture.height != image.height)
+            m_Texture = new Texture2D(image.width, image.height, format, false);
+
+        // Convert the image to format, flipping the image across the Y axis.
+        // We can also get a sub rectangle, but we'll get the full image here.
+        var conversionParams = new XRCpuImage.ConversionParams(image, format, m_Transformation);
+
+        // Texture2D allows us write directly to the raw texture data
+        // This allows us to do the conversion in-place without making any copies.
+        var rawTextureData = m_Texture.GetRawTextureData<byte>();
+        try
+        {
+            image.ConvertAsync(conversionParams);
+        }
+        finally
+        {
+            // We must dispose of the XRCpuImage after we're finished
+            // with it to avoid leaking native resources.
+            image.Dispose();
+        }
+
+        // Apply the updated texture data to our texture
+        m_Texture.Apply();
+
+
+    }
+
+    void YOLOUpdate()
+    {
+        YOLOv8OutputReader.DiscardThreshold = MinBoxConfidence;
+        if (m_Texture == null)
+            return;
+
+        Texture2D texture = m_Texture; //GetNextTexture();
+
+        var boxes = yolo.Run(texture);
+
+        DrawResults(boxes, texture);
+    }
+
+
+    protected void DrawResults(IEnumerable<ResultBox> results, Texture2D img)
+    {
+
+        //results.ForEach(box => DrawBox(box, img));
+
+        foreach (var box in results)
+        {
+            // Access properties or methods of the ResultBox object here
+            DrawBox(box, img);
+        }
+    }
+
+    protected virtual void DrawBox(ResultBox box, Texture2D img)
+    {
+        
+        int boxWidth = (int)(box.score / MinBoxConfidence);
+       
+        //Debug.Log(box.bestClassIndex);
+        if (box.bestClassIndex > classesNames.Length - 1)
+        {
+            return;
+        }
+        string classLebal = classesNames[box.bestClassIndex + 1];
+
+        string extractedClass = classLebal.Substring(classLebal.IndexOf(":"),classLebal.Length);
+        Debug.Log(extractedClass);
+
+        objectDetectedText.text = extractedClass;
+        objectDetectedName = extractedClass;
+    }
+
+
 
 
 }
