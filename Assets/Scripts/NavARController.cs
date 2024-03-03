@@ -73,7 +73,7 @@ public class NavARController : MonoBehaviour
     public TextToSspeechController textToSspeechController;
 
 
-
+    TTSSpeaker speaker;
     // condition to stop alert
     bool isSpeaking = false;
 
@@ -119,6 +119,14 @@ public class NavARController : MonoBehaviour
 
         // instruct the users
         //Speak("Point the phone camera to your front as you move ");
+        speaker = textToSspeechController.ReturnSpeaker();
+
+        speaker.Events.OnFinishedSpeaking.AddListener((speaker, s) => { isSpeaking = false; });
+        speaker.Events.OnPlaybackComplete.AddListener((speaker, s) => { isSpeaking = false; });
+        speaker.Events.OnAudioClipPlaybackFinished.AddListener((a) => { isSpeaking = false; });
+
+
+
     }
 
     //float counterSec = 1;
@@ -194,15 +202,14 @@ public class NavARController : MonoBehaviour
                 {
                     // Start vibration and play sound effect
 
-                    StartHapticVib();
-
-
-                    audioSource.PlayOneShot(audioClip);
-                    //if (!isSpeaking)
-                    //{
-                        
-                    //}
                     
+                    if (!isSpeaking)
+                    {
+                        StartHapticVib();
+                        audioSource.PlayOneShot(audioClip);
+
+                    }
+
 
                     // Tell the user want they see
 
@@ -291,8 +298,8 @@ public class NavARController : MonoBehaviour
 
     public void Speak(string input)
     {
-        audioSource.Pause();
-        audioSource.Stop();
+        //audioSource.Pause();
+       // audioSource.Stop();
         
         isSpeaking = true;
         textToSspeechController.SpeakClick(input);
@@ -311,6 +318,11 @@ public class NavARController : MonoBehaviour
     }
 
     public void OnStopSpeakingTextPlayback(string s)
+    {
+        isSpeaking = false;
+    }
+
+    public void OnStopSpeakingAudioClip(AudioClip ac)
     {
         isSpeaking = false;
     }

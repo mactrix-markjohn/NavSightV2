@@ -36,6 +36,11 @@ public class TextToSspeechController : MonoBehaviour
         
     }
 
+    public TTSSpeaker ReturnSpeaker()
+    {
+        return _speaker;
+    }
+
 
     // Stop click
     public void StopClick() => _speaker.Stop();
