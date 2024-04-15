@@ -163,7 +163,7 @@ PlayerSettings:
   androidMaxAspectRatio: 2.1
   applicationIdentifier:
     Android: com.mactrix.NavSightV2
-    Standalone: com.nianticlabs.ar.ardksamples
+    Standalone: com.mactrix.NavSightV2
     iPhone: com.mactrix.NavSightV2
   buildNumber:
     Standalone: 0
@@ -883,14 +883,14 @@ PlayerSettings:
   webGLMemoryGeometricGrowthCap: 96
   webGLPowerPreference: 2
   scriptingDefineSymbols:
-    Android: NIANTIC_LIGHTSHIP_AR_LOADER_ENABLED;MOREMOUNTAINS_NICEVIBRATIONS;MOREMOUNTAINS_NICEVIBRATIONS_RUMBLE
-    Standalone: NIANTIC_LIGHTSHIP_AR_LOADER_ENABLED
+    Android: NIANTIC_LIGHTSHIP_AR_LOADER_ENABLED;MOREMOUNTAINS_NICEVIBRATIONS;MOREMOUNTAINS_NICEVIBRATIONS_RUMBLE;ENABLE_TENSORFLOW
+    Standalone: NIANTIC_LIGHTSHIP_AR_LOADER_ENABLED;MOREMOUNTAINS_NICEVIBRATIONS;MOREMOUNTAINS_NICEVIBRATIONS_RUMBLE;ENABLE_TENSORFLOW
     VisionOS: MOREMOUNTAINS_NICEVIBRATIONS;MOREMOUNTAINS_NICEVIBRATIONS_RUMBLE
-    iPhone: NIANTIC_LIGHTSHIP_AR_LOADER_ENABLED;UNITY_XR_ARKIT_LOADER_ENABLED
+    iPhone: NIANTIC_LIGHTSHIP_AR_LOADER_ENABLED;UNITY_XR_ARKIT_LOADER_ENABLED;ENABLE_TENSORFLOW
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend:
-    Android: 1
+    Android: 0
   il2cppCompilerConfiguration: {}
   il2cppCodeGeneration: {}
   managedStrippingLevel:
